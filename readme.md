@@ -1,10 +1,9 @@
 netology-devops
-<<<<<<< HEAD
+new line
 one more line
-test project pycharm
-line by experiment
-test number 3
-bye pycharm
-5
-6
-7
+experiment
+1
+2
+3
+4
+
