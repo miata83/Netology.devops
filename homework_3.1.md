@@ -24,7 +24,16 @@ RAM - 1024 Mb
  vagrant@vagrant:~$ touch test/file{000..100000} создаст 100000 файлов в каталоге test. Затрудняюсь ответить по поводу 300000 - возможно есть ограничение по количеству файлов в директории   
 
 11. нет ответа   
-12. нет ответа   
+12. 
+vagrant@vagrant:~$ mkdir /tmp/new_path_directory/   
+vagrant@vagrant:~$ cp /bin/bash /tmp/new_path_directory/   
+vagrant@vagrant:~$ PATH=$PATH:/tmp/new_path_directory/   
+vagrant@vagrant:~$ type -a bash   
+bash is /usr/bin/bash   
+bash is /bin/bash   
+bash is /tmp/new_path_directory/bash   
+vagrant@vagrant:~$   
+  
 13. at - исполняет команду в заданное время;
     batch - исполняет команду когда уровень загрузки системы позволяет.   
 
