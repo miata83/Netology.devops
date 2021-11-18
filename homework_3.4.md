@@ -4,7 +4,7 @@
 * удостоверьтесь, что с помощью `systemctl` процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается.   
 
 **Ответ:**  
-**Добавил EnvironmentFile файл .service, возможно он и несет в себе доп опции для службы.**    
+**Добавил EnvironmentFile в файл .service, возможно он и несет в себе доп опции для службы.**    
 `sudo cp ~/node_exporter-1.2.2.linux-amd64/node_exporter /usr/local/bin`
 `vagrant@vagrant:~$ sudo vim /etc/systemd/system/node_exporter.service`
 ```
