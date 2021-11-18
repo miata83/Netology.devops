@@ -3,44 +3,49 @@
 * предусмотрите возможность добавления опций к запускаемому процессу через внешний файл (посмотрите, например, на `systemctl cat cron`),
 * удостоверьтесь, что с помощью `systemctl` процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается.   
 
-**Ответ:**   
-`vagrant@vagrant:~/nexp$ sudo nano /etc/systemd/system/node_exporter.service`
+**Ответ:**  
+**Добавил EnvironmentFile файл .service, возможно он и несет в себе доп опции для службы.**    
+`sudo cp ~/node_exporter-1.2.2.linux-amd64/node_exporter /usr/local/bin`
+`vagrant@vagrant:~$ sudo vim /etc/systemd/system/node_exporter.service`
 ```
 [Unit]
-Description=Prometheus exporter for machine metrics
+Description=Node Exporter
+After=network-online.target
 
 [Service]
-Restart=always
-RestartSec=20
-ExecStart=/usr/local/bin/node_exporter
+EnvironmentFile=/etc/default/node_exporter
+ExecStart=/usr/local/bin/node_exporter $OPTIONS
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
 ```
-vagrant@vagrant:/etc/default$ sudo systemctl daemon-reload
-vagrant@vagrant:/etc/default$ sudo systemctl start node_exporter.service
-vagrant@vagrant:/etc/default$ sudo systemctl enable node_exporter.service
-vagrant@vagrant:/etc/default$ sudo systemctl status node_exporter.service
-● node_exporter.service - Prometheus exporter for machine metrics
+vagrant@vagrant:~$ sudo systemctl daemon-reload
+vagrant@vagrant:~$ sudo systemctl start node_exporter
+vagrant@vagrant:~$ sudo systemctl enable node_exporter
+vagrant@vagrant:~$ sudo systemctl status node_exporter
+● node_exporter.service - Node Exporter
      Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
-     Active: active (running) since Tue 2021-11-16 08:27:07 UTC; 19s ago
-   Main PID: 1880 (node_exporter)
+     Active: active (running) since Thu 2021-11-18 05:26:32 UTC; 13s ago
+   Main PID: 13425 (node_exporter)
       Tasks: 4 (limit: 1071)
-     Memory: 2.2M
+     Memory: 2.3M
      CGroup: /system.slice/node_exporter.service
-             └─1880 /usr/local/bin/node_exporter
+             └─13425 /usr/local/bin/node_exporter
 
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.379Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.379Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.379Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.379Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.380Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.380Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.380Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.380Z caller=node_exporter.go:115 collect>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.380Z caller=node_exporter.go:199 msg="Li>
-Nov 16 08:27:07 vagrant node_exporter[1880]: level=info ts=2021-11-16T08:27:07.381Z caller=tls_config.go:191 msg="TLS i>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.237Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.238Z caller=node_exporter.go:115 collec>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.238Z caller=node_exporter.go:199 msg="L>
+Nov 18 05:26:32 vagrant node_exporter[13425]: level=info ts=2021-11-18T05:26:32.238Z caller=tls_config.go:191 msg="TLS >
+vagrant@vagrant:~$
 ```
 
 
