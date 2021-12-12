@@ -45,9 +45,25 @@ Connection closed by foreign host.
 ![image](https://user-images.githubusercontent.com/26379231/145710608-01e3b600-5abd-46fb-b4cb-674e2e5d3500.png)
 
 3. Какой IP адрес у вас в интернете? **94.180.42.176**
+![image](https://user-images.githubusercontent.com/26379231/145712350-92b67ee7-5de7-4b2a-9299-3fbed53650a2.png)
+
+
 4. Какому провайдеру принадлежит ваш IP адрес? Какой автономной системе AS? Воспользуйтесь утилитой `whois`
 
 **Ответ:** JSC "ER-Telecom Holding" Novosibirsk branch, AS43478
+```
+vagrant@vagrant:~$ whois -h whois.radb.net 94.180.42.176
+route:          94.180.40.0/22
+origin:         AS43478
+org:            ORG-CN31-RIPE
+descr:          JSC "ER-Telecom Holding" Novosibirsk branch
+descr:          Novosibirsk, Russia
+notify:         ripe@ertelecom.ru
+mnt-by:         RAID-MNT
+created:        2010-10-22T12:31:05Z
+last-modified:  2016-01-28T13:06:08Z
+source:         RIPE
+```
 
 5. Через какие сети проходит пакет, отправленный с вашего компьютера на адрес 8.8.8.8? Через какие AS? Воспользуйтесь утилитой `traceroute`
 
