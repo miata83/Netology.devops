@@ -36,12 +36,12 @@ done
 ```bash
 while (( 1 == 1 ))
 do
-curl https://localhost:4757
-if (($? != 0))
-then
-date >> curl.log
-else exit
-fi
+	curl https://localhost:4757
+	if (($? != 0))
+	then
+		date >> curl.log
+	else exit
+	fi
 sleep 5
 done
 ```
@@ -58,8 +58,8 @@ for i in {1..5}
 do
         for h in ${hosts[@]}
         do
-        curl -s --connect-timeout $timeout $h:80 >/dev/null
-        echo "    check" $h status=$? >>hosts1.log
+        	curl -s --connect-timeout $timeout $h:80 >/dev/null
+        	echo "    check" $h status=$? >>hosts1.log
         done
 done
 vagrant@vagrant:~/bash$ bash hosts1.sh
@@ -80,6 +80,7 @@ vagrant@vagrant:~/bash$ cat hosts1.log
     check 192.168.0.1 status=0
     check 173.194.222.113 status=0
     check 87.250.250.24 status=28
+vagrant@vagrant:~/bash$    
 ```
 
 ## Обязательная задача 4
@@ -95,7 +96,7 @@ err=0
 
 while (($err == 0))
 do
-for h in ${hosts[@]}
+	for h in ${hosts[@]}
         do
                 curl -Is --connect-timeout $timeout $h:80 >/dev/null
                 err=$?
@@ -108,4 +109,5 @@ done
 vagrant@vagrant:~/bash$ bash hosts2.sh
 vagrant@vagrant:~/bash$ cat hosts2.log
     ERROR on  87.250.250.24 status=28
+vagrant@vagrant:~/bash$
 ```
