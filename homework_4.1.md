@@ -98,11 +98,11 @@ while (($err == 0))
 do
 	for h in ${hosts[@]}
         do
-                curl -Is --connect-timeout $timeout $h:80 >/dev/null
+                curl -s --connect-timeout $timeout $h:80 >/dev/null
                 err=$?
-                if (($res != 0))
+                if (($err != 0))
                 then
-                echo "    ERROR on " $h status=$res >>hosts2.log
+                echo "    ERROR on " $h status=$err >>hosts2.log
                 fi
         done
 done
