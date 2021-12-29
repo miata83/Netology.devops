@@ -96,7 +96,7 @@ err=0
 
 while (($err == 0))
 do
-	for h in ${hosts[@]}
+for h in ${hosts[@]}
         do
                 curl -s --connect-timeout $timeout $h:80 >/dev/null
                 err=$?
