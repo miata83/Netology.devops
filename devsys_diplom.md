@@ -66,6 +66,63 @@ Anywhere                   ALLOW       127.0.0.1
 
 ```
 - Процесс установки и выпуска сертификата с помощью hashicorp vault
+
+```
+ubuntu@ip-172-31-5-116:~$ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+OK
+ubuntu@ip-172-31-5-116:~$ sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+Hit:1 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal InRelease
+Get:2 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal-updates InRelease [114 kB]
+Get:3 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal-backports InRelease [108 kB]
+Hit:4 https://apt.releases.hashicorp.com focal InRelease
+Get:5 http://security.ubuntu.com/ubuntu focal-security InRelease [114 kB]
+Fetched 336 kB in 1s (610 kB/s)
+Reading package lists... Done
+ubuntu@ip-172-31-5-116:~$ sudo apt-get update && sudo apt-get install vault
+Hit:1 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal InRelease
+Hit:2 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal-updates InRelease
+Hit:3 http://eu-central-1.ec2.archive.ubuntu.com/ubuntu focal-backports InRelease
+Hit:4 https://apt.releases.hashicorp.com focal InRelease
+Hit:5 http://security.ubuntu.com/ubuntu focal-security InRelease
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+vault is already the newest version (1.9.2).
+0 upgraded, 0 newly installed, 0 to remove and 12 not upgraded.
+ubuntu@ip-172-31-5-116:~$ vault
+Usage: vault <command> [args]
+
+Common commands:
+    read        Read data and retrieves secrets
+    write       Write data, configuration, and secrets
+    delete      Delete secrets and configuration
+    list        List data or secrets
+    login       Authenticate locally
+    agent       Start a Vault agent
+    server      Start a Vault server
+    status      Print seal and HA status
+    unwrap      Unwrap a wrapped secret
+
+Other commands:
+    audit          Interact with audit devices
+    auth           Interact with auth methods
+    debug          Runs the debug command
+    kv             Interact with Vault's Key-Value storage
+    lease          Interact with leases
+    monitor        Stream log messages from a Vault server
+    namespace      Interact with namespaces
+    operator       Perform operator-specific tasks
+    path-help      Retrieve API help for paths
+    plugin         Interact with Vault plugins and catalog
+    policy         Interact with policies
+    print          Prints runtime configurations
+    secrets        Interact with secrets engines
+    ssh            Initiate an SSH session
+    token          Interact with tokens
+ubuntu@ip-172-31-5-116:~$
+```
+
 - Процесс установки и настройки сервера nginx
 - Страница сервера nginx в браузере хоста не содержит предупреждений 
 - Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")
