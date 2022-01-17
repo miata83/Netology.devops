@@ -26,6 +26,45 @@
 Результатом курсовой работы должны быть снимки экрана или текст:
 
 - Процесс установки и настройки ufw
+
+```
+ubuntu@ip-172-31-5-116:~$ sudo apt install ufw
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+ufw is already the newest version (0.36-6ubuntu1).
+0 upgraded, 0 newly installed, 0 to remove and 12 not upgraded.
+
+ubuntu@ip-172-31-5-116:~$ sudo ufw default deny incoming
+Default incoming policy changed to 'deny'
+(be sure to update your rules accordingly)
+
+ubuntu@ip-172-31-5-116:~$ sudo ufw default allow outgoing
+Default outgoing policy changed to 'allow'
+(be sure to update your rules accordingly)
+
+ubuntu@ip-172-31-5-116:~$ sudo ufw allow ssh
+ubuntu@ip-172-31-5-116:~$ sudo ufw allow 443
+ubuntu@ip-172-31-5-116:~$ sudo ufw allow from 127.0.0.1
+
+ubuntu@ip-172-31-5-116:~$ sudo ufw enable
+Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
+Firewall is active and enabled on system startup
+
+ubuntu@ip-172-31-5-116:~$ sudo ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+443                        ALLOW       Anywhere
+22                         ALLOW       Anywhere
+Anywhere                   ALLOW       127.0.0.1
+22/tcp (v6)                ALLOW       Anywhere (v6)
+443 (v6)                   ALLOW       Anywhere (v6)
+22 (v6)                    ALLOW       Anywhere (v6)
+
+```
 - Процесс установки и выпуска сертификата с помощью hashicorp vault
 - Процесс установки и настройки сервера nginx
 - Страница сервера nginx в браузере хоста не содержит предупреждений 
