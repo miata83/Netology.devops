@@ -286,7 +286,7 @@ Synchronizing state of cron.service with SysV service script with /lib/systemd/s
 Executing: /lib/systemd/systemd-sysv-install enable cron
 ubuntu@ip-172-31-5-116:~$ crontab -e
 ```
-Раскоментил настройку таким образом:
+Раскоментил настройку таким образом - каждый месяц, первого числа, в 0-15:
 ```
-15 3 1 * * ./cert_update.sh
+15 0 1 * * /home/ubuntu/cert_update.sh
 ```
