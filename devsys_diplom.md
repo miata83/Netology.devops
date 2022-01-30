@@ -25,7 +25,9 @@
 
 Результатом курсовой работы должны быть снимки экрана или текст:
 
-- Процесс установки и настройки ufw
+**В качестве виртуальной машины используется сервер Ubuntu 20.04 на Amazon Web Services**
+
+**- Процесс установки и настройки ufw**
 
 ```
 ubuntu@ip-172-31-5-116:~$ sudo apt install ufw
@@ -65,7 +67,7 @@ Anywhere                   ALLOW       127.0.0.1
 22 (v6)                    ALLOW       Anywhere (v6)
 
 ```
-- Процесс установки и выпуска сертификата с помощью hashicorp vault
+**- Процесс установки и выпуска сертификата с помощью hashicorp vault**
 
 ```
 ubuntu@ip-172-31-5-116:~$ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
@@ -120,10 +122,135 @@ Other commands:
     secrets        Interact with secrets engines
     ssh            Initiate an SSH session
     token          Interact with tokens
+ubuntu@ip-172-31-5-116:~$vault server -dev -dev-root-token-id=root
+ubuntu@ip-172-31-5-116:~$ export VAULT_ADDR=http://127.0.0.1:8200
+ubuntu@ip-172-31-5-116:~$ export VAULT_TOKEN=root
+
+ubuntu@ip-172-31-5-116:~$ tee admin-policy.hcl <<EOF
+> # Enable secrets engine
+> path "sys/mounts/*" {
+>   capabilities = [ "create", "read", "update", "delete", "list" ]
+> }
+>
+> # List enabled secrets engine
+> path "sys/mounts" {
+>   capabilities = [ "read", "list" ]
+> }
+>
+> # Work with pki secrets engine
+> path "pki*" {
+>   capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
+> }
+> EOF
+# Enable secrets engine
+path "sys/mounts/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+# List enabled secrets engine
+path "sys/mounts" {
+  capabilities = [ "read", "list" ]
+}
+
+# Work with pki secrets engine
+path "pki*" {
+  capabilities = [ "create", "read", "update", "delete", "list", "sudo" ]
+}
 ubuntu@ip-172-31-5-116:~$
+
+
+ubuntu@ip-172-31-5-116:~$ vault policy write admin admin-policy.hcl
+Success! Uploaded policy: admin
 ```
 
+**#Generate root CA**
+```
+ubuntu@ip-172-31-5-116:~$ vault secrets enable pki
+Success! Enabled the pki secrets engine at: pki/
+ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=87600h pki
+Success! Tuned the secrets engine at: pki/
+ubuntu@ip-172-31-5-116:~$ vault write -field=certificate pki/root/generate/internal \
+>      common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
+>      ttl=87600h > CA_cert.crt
+
+ubuntu@ip-172-31-5-116:~$ vault write pki/config/urls \
+>      issuing_certificates="$VAULT_ADDR/v1/pki/ca" \
+>      crl_distribution_points="$VAULT_ADDR/v1/pki/crl"
+Success! Data written to: pki/config/urls
+```
+**#Generate intermediate CA**
+```
+ubuntu@ip-172-31-5-116:~$ vault secrets enable -path=pki_int pki
+Success! Enabled the pki secrets engine at: pki_int/
+ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=43800h pki_int
+Success! Tuned the secrets engine at: pki_int/
+ubuntu@ip-172-31-5-116:~$ vault write -format=json pki_int/intermediate/generate/internal \
+>      common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com Intermediate Authority" \
+>      | jq -r '.data.csr' > pki_intermediate.csr
+ubuntu@ip-172-31-5-116:~$ vault write -format=json pki/root/sign-intermediate csr=@pki_intermediate.csr \
+>      format=pem_bundle ttl="43800h" \
+>      | jq -r '.data.certificate' > intermediate.cert.pem
+ubuntu@ip-172-31-5-116:~$ vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
+Success! Data written to: pki_int/intermediate/set-signed
+```
+**#Create a role**
+```
+ubuntu@ip-172-31-5-116:~$ vault write pki_int/roles/example-dot-com \
+>      allowed_domains="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
+>      allow_subdomains=true \
+>      max_ttl="720h"
+Success! Data written to: pki_int/roles/example-dot-com
+```
+**#Request certificates**
+```
+vault write pki_int/issue/example-dot-com \
+     common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
+     ttl="720h" > test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com.crt
+     
+ubuntu@ip-172-31-5-116:~$ cat test.aws.com.crt | jq -r .data.certificate > test.aws.com.crt
+ubuntu@ip-172-31-5-116:~$ cat test.aws.com.crt | jq -r .data.private_key > test.aws.com.crt.key
+```
+**Установка корневого сертификата созданного центра сертификации в доверенные в хостовой системе**
+```
+ubuntu@ip-172-31-5-116:~$ sudo cp CA_cert.crt /usr/local/share/ca-certificates/
+ubuntu@ip-172-31-5-116:~$ sudo update-ca-certificates
+Updating certificates in /etc/ssl/certs...
+1 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+ubuntu@ip-172-31-5-116:
+``
+
 - Процесс установки и настройки сервера nginx
+
+```
+ubuntu@ip-172-31-5-116:~$ sudo apt install nginx
+ubuntu@ip-172-31-5-116:~$ sudo ufw app list
+Available applications:
+  Nginx Full
+  Nginx HTTP
+  Nginx HTTPS
+  OpenSSH
+ubuntu@ip-172-31-5-116:~$ sudo ufw allow 'Nginx Full'
+ubuntu@ip-172-31-5-116:~$ systemctl status nginx
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset:>
+     Active: active (running) since Sun 2022-01-30 16:05:04 UTC; 6min ago
+       Docs: man:nginx(8)
+   Main PID: 24119 (nginx)
+      Tasks: 2 (limit: 1147)
+     Memory: 5.8M
+     CGroup: /system.slice/nginx.service
+             ├─24119 nginx: master process /usr/sbin/nginx -g daemon on; master>
+             └─24120 nginx: worker process
+```            
+После установки nginx копируем файлы сертификата и ключа и указываем путь до них в файле настроек конфигурации сервера:             
+```
+ubuntu@ip-172-31-5-116:~$ sudo mkdir /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt.key /etc/nginx/ssl
+```
+
 - Страница сервера nginx в браузере хоста не содержит предупреждений 
 - Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")
 - Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)
