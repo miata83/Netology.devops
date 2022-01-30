@@ -169,9 +169,9 @@ ubuntu@ip-172-31-5-116:~$ vault secrets enable pki
 Success! Enabled the pki secrets engine at: pki/
 ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=87600h pki
 Success! Tuned the secrets engine at: pki/
-ubuntu@ip-172-31-5-116:~$ vault write -field=certificate pki/root/generate/internal \
+ubuntu@ip-172-31-5-116:~$  vault write -field=certificate pki/root/generate/internal \
 >      common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
->      ttl=87600h > CA_cert.crt
+>      ttl=87600h > aws_CA.crt
 
 ubuntu@ip-172-31-5-116:~$ vault write pki/config/urls \
 >      issuing_certificates="$VAULT_ADDR/v1/pki/ca" \
@@ -203,25 +203,26 @@ Success! Data written to: pki_int/roles/example-dot-com
 ```
 **#Request certificates**
 ```
-vault write pki_int/issue/example-dot-com \
-     common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
-     ttl="720h" > test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com.crt
-     
-ubuntu@ip-172-31-5-116:~$ cat test.aws.com.crt | jq -r .data.certificate > test.aws.com.crt
-ubuntu@ip-172-31-5-116:~$ cat test.aws.com.crt | jq -r .data.private_key > test.aws.com.crt.key
+ubuntu@ip-172-31-5-116:~$ json_crt=`vault write -format=json pki_int/issue/example-dot-com common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.certificate'>test.aws.com.crt
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.aws.com.key
+
 ```
 **Установка корневого сертификата созданного центра сертификации в доверенные в хостовой системе**
 ```
-ubuntu@ip-172-31-5-116:~$ sudo cp CA_cert.crt /usr/local/share/ca-certificates/
+ubuntu@ip-172-31-5-116:~$ openssl x509 -outform der -in intermediate.cert.pem -out intermediate.cert.crt
+ubuntu@ip-172-31-5-116:~$ sudo cp aws_CA.crt /usr/local/share/ca-certificates/
+ubuntu@ip-172-31-5-116:~$ sudo cp intermediate.cert.crt /usr/local/share/ca-certificates/
 ubuntu@ip-172-31-5-116:~$ sudo update-ca-certificates
 Updating certificates in /etc/ssl/certs...
-1 added, 0 removed; done.
+2 added, 0 removed; done.
 Running hooks in /etc/ca-certificates/update.d...
 done.
-ubuntu@ip-172-31-5-116:
-``
+ubuntu@ip-172-31-5-116:~$ awk -v cmd='openssl x509 -noout -subject' ' /BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep -i aws
+subject=CN = ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
+```
 
-- Процесс установки и настройки сервера nginx
+**- Процесс установки и настройки сервера nginx**
 
 ```
 ubuntu@ip-172-31-5-116:~$ sudo apt install nginx
@@ -244,23 +245,49 @@ ubuntu@ip-172-31-5-116:~$ systemctl status nginx
              ├─24119 nginx: master process /usr/sbin/nginx -g daemon on; master>
              └─24120 nginx: worker process
 ```            
-После установки nginx копируем файлы сертификата и ключа и указываем путь до них в файле настроек конфигурации сервера:             
+**После установки nginx копируем файлы сертификата и ключа и указываем путь до них в файле настроек конфигурации сервера:**             
 ```
 ubuntu@ip-172-31-5-116:~$ sudo mkdir /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt /etc/nginx/ssl
-ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt.key /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.key /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo nano /etc/nginx/sites-enabled/default
 ```
+**Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до ключей**
+```
+listen 443 ssl default_server;
+server_name       test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
+ssl_certificate     /etc/nginx/ssl/test.aws.com.crt;
+ssl_certificate_key /etc/nginx/ssl/test.aws.com.key;
 
-- Страница сервера nginx в браузере хоста не содержит предупреждений 
-- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")
-- Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)
+```
+**- Страница сервера nginx в браузере хоста не содержит предупреждений**
 
-## Как сдавать курсовую работу
+**- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
+Скрипт генерации cert_update.sh:
+```
+#!/bin/bash
+json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
+echo $json_cert|jq -r '.data.certificate'>/etc/nginx/ssl/test.aws.com.crt
+echo $json_cert|jq -r '.data.private_key'>/etc/nginx/ssl/test.aws.com.key
+sudo systemctl restart nginx
+```
+Права на запуск файла и запуск файла:
+```
+ubuntu@ip-172-31-5-116:~$ chmod 755 cert_update.sh
+ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
+./cert_update.sh: line 3: /etc/nginx/ssl/test.aws.com.crt: Permission denied
+./cert_update.sh: line 4: /etc/nginx/ssl/test.aws.com.key: Permission denied
+```
+и получаем ошибку доступа от Nginx((
 
-Курсовую работу выполните в файле readme.md в github репозитории. В личном кабинете отправьте на проверку ссылку на .md-файл в вашем репозитории.
-
-Также вы можете выполнить задание в [Google Docs](https://docs.google.com/document/u/0/?tgif=d) и отправить в личном кабинете на проверку ссылку на ваш документ.
-Если необходимо прикрепить дополнительные ссылки, просто добавьте их в свой Google Docs.
-
-Перед тем как выслать ссылку, убедитесь, что ее содержимое не является приватным (открыто на комментирование всем, у кого есть ссылка), иначе преподаватель не сможет проверить работу. 
-Ссылка на инструкцию [Как предоставить доступ к файлам и папкам на Google Диске](https://support.google.com/docs/answer/2494822?hl=ru&co=GENIE.Platform%3DDesktop).
+**- Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)**
+```
+ubuntu@ip-172-31-5-116:~$ sudo systemctl enable cron
+Synchronizing state of cron.service with SysV service script with /lib/systemd/systemd-sysv-install.
+Executing: /lib/systemd/systemd-sysv-install enable cron
+ubuntu@ip-172-31-5-116:~$ crontab -e
+```
+Раскоментил настройку таким образом:
+```
+15 3 1 * * ./cert_update.sh
+```
