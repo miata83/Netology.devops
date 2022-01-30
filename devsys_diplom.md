@@ -210,12 +210,10 @@ ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.aws.com.
 ```
 **Установка корневого сертификата созданного центра сертификации в доверенные в хостовой системе**
 ```
-ubuntu@ip-172-31-5-116:~$ openssl x509 -outform der -in intermediate.cert.pem -out intermediate.cert.crt
 ubuntu@ip-172-31-5-116:~$ sudo cp aws_CA.crt /usr/local/share/ca-certificates/
-ubuntu@ip-172-31-5-116:~$ sudo cp intermediate.cert.crt /usr/local/share/ca-certificates/
 ubuntu@ip-172-31-5-116:~$ sudo update-ca-certificates
 Updating certificates in /etc/ssl/certs...
-2 added, 0 removed; done.
+1 added, 0 removed; done.
 Running hooks in /etc/ca-certificates/update.d...
 done.
 ubuntu@ip-172-31-5-116:~$ awk -v cmd='openssl x509 -noout -subject' ' /BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep -i aws
@@ -245,14 +243,14 @@ ubuntu@ip-172-31-5-116:~$ systemctl status nginx
              ├─24119 nginx: master process /usr/sbin/nginx -g daemon on; master>
              └─24120 nginx: worker process
 ```            
-**После установки nginx копируем файлы сертификата и ключа и указываем путь до них в файле настроек конфигурации сервера:**             
+**После установки nginx копируем файлы сертификата и ключа в папку /ssl  и указываем путь до нее в файле настроек конфигурации сервера:**             
 ```
 ubuntu@ip-172-31-5-116:~$ sudo mkdir /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.key /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo nano /etc/nginx/sites-enabled/default
 ```
-**Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до ключей**
+**Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до файлов .crt и .key**
 ```
 listen 443 ssl default_server;
 server_name       test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
@@ -261,6 +259,7 @@ ssl_certificate_key /etc/nginx/ssl/test.aws.com.key;
 
 ```
 **- Страница сервера nginx в браузере хоста не содержит предупреждений**
+https://test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, грузится только http версия ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
 
 **- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
 Скрипт генерации cert_update.sh:
@@ -278,7 +277,7 @@ ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
 ./cert_update.sh: line 3: /etc/nginx/ssl/test.aws.com.crt: Permission denied
 ./cert_update.sh: line 4: /etc/nginx/ssl/test.aws.com.key: Permission denied
 ```
-и получаем ошибку доступа от Nginx((
+**и получаем ошибку доступа от Nginx((**
 
 **- Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)**
 ```
