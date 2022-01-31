@@ -26,7 +26,7 @@
 Результатом курсовой работы должны быть снимки экрана или текст:
 
 **В качестве виртуальной машины используется сервер Ubuntu 20.04 на Amazon Web Services**
-ec2-3-71-99-4.eu-central-1.compute.amazonaws.com/    
+https://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com/  
 **- Процесс установки и настройки ufw**
 
 ```
@@ -258,7 +258,7 @@ ubuntu@ip-172-31-5-116:~$ sudo nano /etc/nginx/sites-enabled/default
 **Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до файлов .crt и .key**
 ```
 listen 443 ssl default_server;
-server_name       test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
+server_name       ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
 ssl_certificate     /etc/nginx/ssl/test.aws2.crt;
 ssl_certificate_key /etc/nginx/ssl/test.aws2.key;
 
@@ -275,17 +275,17 @@ ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, гру
 Скрипт генерации cert_update.sh:
 ```
 #!/bin/bash
-json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
-echo $json_cert|jq -r '.data.certificate'>/etc/nginx/ssl/test.aws.com.crt
-echo $json_cert|jq -r '.data.private_key'>/etc/nginx/ssl/test.aws.com.key
+json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
+echo $json_cert|jq -r '.data.certificate'>/etc/nginx/ssl/test.aws2.crt
+echo $json_cert|jq -r '.data.private_key'>/etc/nginx/ssl/test.aws2.key
 sudo systemctl restart nginx
 ```
 Права на запуск файла и запуск файла:
 ```
 ubuntu@ip-172-31-5-116:~$ chmod 755 cert_update.sh
 ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
-./cert_update.sh: line 3: /etc/nginx/ssl/test.aws.com.crt: Permission denied
-./cert_update.sh: line 4: /etc/nginx/ssl/test.aws.com.key: Permission denied
+./cert_update.sh: line 3: /etc/nginx/ssl/test.aws2.crt: Permission denied
+./cert_update.sh: line 4: /etc/nginx/ssl/test.aws2.key: Permission denied
 ```
 **и получаем ошибку доступа от Nginx((**
 
