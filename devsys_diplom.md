@@ -170,8 +170,8 @@ Success! Enabled the pki secrets engine at: pki/
 ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=87600h pki
 Success! Tuned the secrets engine at: pki/
 ubuntu@ip-172-31-5-116:~$  vault write -field=certificate pki/root/generate/internal \
->      common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
->      ttl=87600h > aws_CA.crt
+>      common_name="eu-central-1.compute.amazonaws.com" \
+>      ttl=87600h > aws_CA2.crt
 
 ubuntu@ip-172-31-5-116:~$ vault write pki/config/urls \
 >      issuing_certificates="$VAULT_ADDR/v1/pki/ca" \
@@ -185,39 +185,44 @@ Success! Enabled the pki secrets engine at: pki_int/
 ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=43800h pki_int
 Success! Tuned the secrets engine at: pki_int/
 ubuntu@ip-172-31-5-116:~$ vault write -format=json pki_int/intermediate/generate/internal \
->      common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com Intermediate Authority" \
+>      common_name="eu-central-1.compute.amazonaws.com Intermediate Authority" \
 >      | jq -r '.data.csr' > pki_intermediate.csr
 ubuntu@ip-172-31-5-116:~$ vault write -format=json pki/root/sign-intermediate csr=@pki_intermediate.csr \
 >      format=pem_bundle ttl="43800h" \
 >      | jq -r '.data.certificate' > intermediate.cert.pem
 ubuntu@ip-172-31-5-116:~$ vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
 Success! Data written to: pki_int/intermediate/set-signed
+
+ubuntu@ip-172-31-5-116:~$ vault write pki_int/config/urls \
+>     issuing_certificates="$VAULT_ADDR/v1/pki_int/ca" \
+>     crl_distribution_points="$VAULT_ADDR/v1/pki_int/crl"
+Success! Data written to: pki_int/config/urls
 ```
 **#Create a role**
 ```
 ubuntu@ip-172-31-5-116:~$ vault write pki_int/roles/example-dot-com \
->      allowed_domains="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" \
+>      allowed_domains="eu-central-1.compute.amazonaws.com" \
 >      allow_subdomains=true \
 >      max_ttl="720h"
 Success! Data written to: pki_int/roles/example-dot-com
 ```
 **#Request certificates**
 ```
-ubuntu@ip-172-31-5-116:~$ json_crt=`vault write -format=json pki_int/issue/example-dot-com common_name="test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
-ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.certificate'>test.aws.com.crt
-ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.aws.com.key
+ubuntu@ip-172-31-5-116:~$ json_crt=`vault write -format=json pki_int/issue/example-dot-com common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.certificate'>test.aws2.crt
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.aws2.key
 
 ```
 **Установка корневого сертификата созданного центра сертификации в доверенные в хостовой системе**
 ```
-ubuntu@ip-172-31-5-116:~$ sudo cp aws_CA.crt /usr/local/share/ca-certificates/
+ubuntu@ip-172-31-5-116:~$ sudo cp aws_CA2.crt /usr/local/share/ca-certificates/
 ubuntu@ip-172-31-5-116:~$ sudo update-ca-certificates
 Updating certificates in /etc/ssl/certs...
 1 added, 0 removed; done.
 Running hooks in /etc/ca-certificates/update.d...
 done.
 ubuntu@ip-172-31-5-116:~$ awk -v cmd='openssl x509 -noout -subject' ' /BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep -i aws
-subject=CN = ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
+subject=CN = eu-central-1.compute.amazonaws.com
 ```
 
 **- Процесс установки и настройки сервера nginx**
@@ -246,19 +251,24 @@ ubuntu@ip-172-31-5-116:~$ systemctl status nginx
 **После установки nginx копируем файлы сертификата и ключа в папку /ssl  и указываем путь до нее в файле настроек конфигурации сервера:**             
 ```
 ubuntu@ip-172-31-5-116:~$ sudo mkdir /etc/nginx/ssl
-ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.crt /etc/nginx/ssl
-ubuntu@ip-172-31-5-116:~$ sudo cp test.aws.com.key /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.aws2.crt /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.aws2.key /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo nano /etc/nginx/sites-enabled/default
 ```
 **Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до файлов .crt и .key**
 ```
 listen 443 ssl default_server;
 server_name       test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
-ssl_certificate     /etc/nginx/ssl/test.aws.com.crt;
-ssl_certificate_key /etc/nginx/ssl/test.aws.com.key;
+ssl_certificate     /etc/nginx/ssl/test.aws2.crt;
+ssl_certificate_key /etc/nginx/ssl/test.aws2.key;
 
 ```
 **- Страница сервера nginx в браузере хоста не содержит предупреждений**
+```
+ubuntu@ip-172-31-5-116:~$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
 https://test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, грузится только http версия ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
 
 **- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
