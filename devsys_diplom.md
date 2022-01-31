@@ -26,7 +26,7 @@
 Результатом курсовой работы должны быть снимки экрана или текст:
 
 **В качестве виртуальной машины используется сервер Ubuntu 20.04 на Amazon Web Services**
-([ссылка](http://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com/))    
+([ссылка](ec2-3-71-99-4.eu-central-1.compute.amazonaws.com/))    
 **- Процесс установки и настройки ufw**
 
 ```
@@ -269,7 +269,7 @@ ubuntu@ip-172-31-5-116:~$ sudo nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
 ```
-https://test.ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, грузится только http версия ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
+ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, грузится только http версия ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
 
 **- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
 Скрипт генерации cert_update.sh:
