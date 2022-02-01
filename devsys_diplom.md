@@ -269,25 +269,26 @@ ubuntu@ip-172-31-5-116:~$ sudo nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
 ```
-ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - не грузится, грузится только http версия ec2-3-71-99-4.eu-central-1.compute.amazonaws.com
+https://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com грузится с ошибкой сертификата:
+![image](https://user-images.githubusercontent.com/26379231/151928047-03c3ecf0-899e-46a0-b16b-8785c5b15fa6.png)
+
 
 **- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
 Скрипт генерации cert_update.sh:
 ```
 #!/bin/bash
 json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
-echo $json_cert|jq -r '.data.certificate'>/etc/nginx/ssl/test.aws2.crt
-echo $json_cert|jq -r '.data.private_key'>/etc/nginx/ssl/test.aws2.key
+echo $json_cert|jq -r '.data.certificate'>test.aws2.crt
+echo $json_cert|jq -r '.data.private_key'>test.aws2.key
+sudo cp test.aws2.crt /etc/nginx/ssl
+sudo cp test.aws2.key /etc/nginx/ssl
 sudo systemctl restart nginx
 ```
 Права на запуск файла и запуск файла:
 ```
 ubuntu@ip-172-31-5-116:~$ chmod 755 cert_update.sh
 ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
-./cert_update.sh: line 3: /etc/nginx/ssl/test.aws2.crt: Permission denied
-./cert_update.sh: line 4: /etc/nginx/ssl/test.aws2.key: Permission denied
 ```
-**и получаем ошибку доступа от Nginx((**
 
 **- Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)**
 ```
