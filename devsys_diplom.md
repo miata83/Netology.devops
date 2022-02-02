@@ -268,6 +268,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 sudo systemctl restart nginx
 ```
 https://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - браузер сообщает, что сертификат ненадежный, ведь мы его подписали самостоятельно. Браузер не может проверить подлинность хоста, поэтому и выдает такое сообщение.
+
 ![image](https://user-images.githubusercontent.com/26379231/152126618-189d58a1-1858-4c73-89a7-40b4da56e414.png)
 
 
@@ -290,10 +291,12 @@ ubuntu@ip-172-31-5-116:~$ chmod 755 cert_update.sh
 ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
 ```
 Сравниваем серийные номера сертификата до запуска скрипта и после, видим, что серийний номер сменился, значит скрипт отрабатывает верно:
-До запуска:
-![image](https://user-images.githubusercontent.com/26379231/152127985-1f5f6f86-53d0-464f-b58b-3d23111cd84c.png)
-После запуска:
-![image](https://user-images.githubusercontent.com/26379231/152128055-441f9771-9f3f-4db8-983d-3f0aa6304fb9.png)
+До запуска:    
+
+![image](https://user-images.githubusercontent.com/26379231/152127985-1f5f6f86-53d0-464f-b58b-3d23111cd84c.png)    
+
+После запуска:    
+![image](https://user-images.githubusercontent.com/26379231/152128055-441f9771-9f3f-4db8-983d-3f0aa6304fb9.png)    
 
 
 
@@ -312,7 +315,10 @@ ubuntu@ip-172-31-5-116:~$ crontab -e
 40 9 2 * * /home/ubuntu/cert_update.sh
 ```
 проверяем смену сертификатов
-До 9-40:
-![image](https://user-images.githubusercontent.com/26379231/152128875-097f584c-8927-4064-99e9-2c334d3362f3.png)
-После 9-40:
-![image](https://user-images.githubusercontent.com/26379231/152129419-c3424dfa-4032-4f59-a04b-c08cf9c02073.png)
+До 9-40:    
+
+![image](https://user-images.githubusercontent.com/26379231/152128875-097f584c-8927-4064-99e9-2c334d3362f3.png)    
+
+После 9-40:    
+
+![image](https://user-images.githubusercontent.com/26379231/152129419-c3424dfa-4032-4f59-a04b-c08cf9c02073.png)    
