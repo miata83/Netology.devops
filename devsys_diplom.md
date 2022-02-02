@@ -170,8 +170,8 @@ Success! Enabled the pki secrets engine at: pki/
 ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=87600h pki
 Success! Tuned the secrets engine at: pki/
 ubuntu@ip-172-31-5-116:~$  vault write -field=certificate pki/root/generate/internal \
->      common_name="eu-central-1.compute.amazonaws.com" \
->      ttl=87600h > aws_CA2.crt
+>      common_name="example.com" \
+>      ttl=87600h > ca_cert.crt
 
 ubuntu@ip-172-31-5-116:~$ vault write pki/config/urls \
 >      issuing_certificates="$VAULT_ADDR/v1/pki/ca" \
@@ -185,7 +185,7 @@ Success! Enabled the pki secrets engine at: pki_int/
 ubuntu@ip-172-31-5-116:~$ vault secrets tune -max-lease-ttl=43800h pki_int
 Success! Tuned the secrets engine at: pki_int/
 ubuntu@ip-172-31-5-116:~$ vault write -format=json pki_int/intermediate/generate/internal \
->      common_name="eu-central-1.compute.amazonaws.com Intermediate Authority" \
+>      common_name="example.com Intermediate Authority" \
 >      | jq -r '.data.csr' > pki_intermediate.csr
 ubuntu@ip-172-31-5-116:~$ vault write -format=json pki/root/sign-intermediate csr=@pki_intermediate.csr \
 >      format=pem_bundle ttl="43800h" \
@@ -201,28 +201,25 @@ Success! Data written to: pki_int/config/urls
 **#Create a role**
 ```
 ubuntu@ip-172-31-5-116:~$ vault write pki_int/roles/example-dot-com \
->      allowed_domains="eu-central-1.compute.amazonaws.com" \
+>      allowed_domains="example.com" \
 >      allow_subdomains=true \
 >      max_ttl="720h"
 Success! Data written to: pki_int/roles/example-dot-com
 ```
 **#Request certificates**
 ```
-ubuntu@ip-172-31-5-116:~$ json_crt=`vault write -format=json pki_int/issue/example-dot-com common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
-ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.certificate'>test.aws2.crt
-ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.aws2.key
-
+ubuntu@ip-172-31-5-116:~$ json_crt=`vault write -format=json pki_int/issue/example-dot-com common_name="test.example.com" ttl="720h"`
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.certificate'>test.example.com.crt
+ubuntu@ip-172-31-5-116:~$ echo $json_crt|jq -r '.data.private_key'>test.example.com.key
 ```
 **Установка корневого сертификата созданного центра сертификации в доверенные в хостовой системе**
 ```
-ubuntu@ip-172-31-5-116:~$ sudo cp aws_CA2.crt /usr/local/share/ca-certificates/
+ubuntu@ip-172-31-5-116:~$ sudo cp ca_cert.crt /usr/local/share/ca-certificates/
 ubuntu@ip-172-31-5-116:~$ sudo update-ca-certificates
 Updating certificates in /etc/ssl/certs...
 1 added, 0 removed; done.
 Running hooks in /etc/ca-certificates/update.d...
 done.
-ubuntu@ip-172-31-5-116:~$ awk -v cmd='openssl x509 -noout -subject' ' /BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep -i aws
-subject=CN = eu-central-1.compute.amazonaws.com
 ```
 
 **- Процесс установки и настройки сервера nginx**
@@ -251,16 +248,16 @@ ubuntu@ip-172-31-5-116:~$ systemctl status nginx
 **После установки nginx копируем файлы сертификата и ключа в папку /ssl  и указываем путь до нее в файле настроек конфигурации сервера:**             
 ```
 ubuntu@ip-172-31-5-116:~$ sudo mkdir /etc/nginx/ssl
-ubuntu@ip-172-31-5-116:~$ sudo cp test.aws2.crt /etc/nginx/ssl
-ubuntu@ip-172-31-5-116:~$ sudo cp test.aws2.key /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.example.com.crt /etc/nginx/ssl
+ubuntu@ip-172-31-5-116:~$ sudo cp test.example.com.key /etc/nginx/ssl
 ubuntu@ip-172-31-5-116:~$ sudo nano /etc/nginx/sites-enabled/default
 ```
 **Для этого надо раскомментировать строчки, относящиеся к ssl в соотвествии с инструкцией указываем пути до файлов .crt и .key**
 ```
 listen 443 ssl default_server;
-server_name       ec2-3-71-99-4.eu-central-1.compute.amazonaws.com;
-ssl_certificate     /etc/nginx/ssl/test.aws2.crt;
-ssl_certificate_key /etc/nginx/ssl/test.aws2.key;
+server_name       test.example.com;
+ssl_certificate     /etc/nginx/ssl/test.example.com.crt;
+ssl_certificate_key /etc/nginx/ssl/test.example.com.key;
 
 ```
 **- Страница сервера nginx в браузере хоста не содержит предупреждений**
@@ -268,36 +265,54 @@ ssl_certificate_key /etc/nginx/ssl/test.aws2.key;
 ubuntu@ip-172-31-5-116:~$ sudo nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
+sudo systemctl restart nginx
 ```
-https://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com грузится с ошибкой сертификата:
-![image](https://user-images.githubusercontent.com/26379231/151928047-03c3ecf0-899e-46a0-b16b-8785c5b15fa6.png)
+https://ec2-3-71-99-4.eu-central-1.compute.amazonaws.com - браузер сообщает, что сертификат ненадежный, ведь мы его подписали самостоятельно. Браузер не может проверить подлинность хоста, поэтому и выдает такое сообщение.
+![image](https://user-images.githubusercontent.com/26379231/152126618-189d58a1-1858-4c73-89a7-40b4da56e414.png)
+
 
 
 **- Скрипт генерации нового сертификата работает (сертификат сервера ngnix должен быть "зеленым")**
 Скрипт генерации cert_update.sh:
 ```
 #!/bin/bash
-json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="ec2-3-71-99-4.eu-central-1.compute.amazonaws.com" ttl="720h"`
-echo $json_cert|jq -r '.data.certificate'>test.aws2.crt
-echo $json_cert|jq -r '.data.private_key'>test.aws2.key
-sudo cp test.aws2.crt /etc/nginx/ssl
-sudo cp test.aws2.key /etc/nginx/ssl
+json_cert=`vault write -format=json pki_int/issue/example-dot-com common_name="test.example.com" ttl="720h"`
+echo $json_cert|jq -r '.data.certificate'>test.example.com.crt
+echo $json_cert|jq -r '.data.private_key'>test.example.com.key
+sudo cp test.example.com.crt /etc/nginx/ssl
+sudo cp test.example.com.key /etc/nginx/ssl
 sudo systemctl restart nginx
 ```
+
 Права на запуск файла и запуск файла:
 ```
 ubuntu@ip-172-31-5-116:~$ chmod 755 cert_update.sh
 ubuntu@ip-172-31-5-116:~$ ./cert_update.sh
 ```
+Сравниваем серийные номера сертификата до запуска скрипта и после, видим, что серийний номер сменился, значит скрипт отрабатывает верно:
+До запуска:
+![image](https://user-images.githubusercontent.com/26379231/152127985-1f5f6f86-53d0-464f-b58b-3d23111cd84c.png)
+После запуска:
+![image](https://user-images.githubusercontent.com/26379231/152128055-441f9771-9f3f-4db8-983d-3f0aa6304fb9.png)
+
+
+
 
 **- Crontab работает (выберите число и время так, чтобы показать что crontab запускается и делает что надо)**
 ```
 ubuntu@ip-172-31-5-116:~$ sudo systemctl enable cron
 Synchronizing state of cron.service with SysV service script with /lib/systemd/systemd-sysv-install.
 Executing: /lib/systemd/systemd-sysv-install enable cron
+ubuntu@ip-172-31-5-116:~$ date
+Wed Feb  2 09:34:32 UTC 2022
 ubuntu@ip-172-31-5-116:~$ crontab -e
 ```
-Раскоментил настройку таким образом - каждый месяц, первого числа, в 0-15:
+Раскоментил настройку таким образом - каждый месяц, 2-го числа, в 9-40 (через 5 минут от команды date):
 ```
-15 0 1 * * /home/ubuntu/cert_update.sh
+40 9 2 * * /home/ubuntu/cert_update.sh
 ```
+проверяем смену сертификатов
+До 9-40:
+![image](https://user-images.githubusercontent.com/26379231/152128875-097f584c-8927-4064-99e9-2c334d3362f3.png)
+После 9-40:
+![image](https://user-images.githubusercontent.com/26379231/152129419-c3424dfa-4032-4f59-a04b-c08cf9c02073.png)
